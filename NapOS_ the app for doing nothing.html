@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NapOS: the app for doing nothing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1c1b3d; --bg2:#26254f; --ink:#f3efff; --muted:#b4afd8; --moon:#ffd66b; --coral:#ff8a78; --line:#3b3a6b;
+  --display:'Bricolage Grotesque','Trebuchet MS',sans-serif; --body:'DM Sans',system-ui,sans-serif;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){--bg:#fbf6e9;--bg2:#f1e9d2;--ink:#24214d;--muted:#5d5a86;--moon:#f2a900;--coral:#e0543f;--line:#dccfa8}
+}
+:root[data-theme="light"]{--bg:#fbf6e9;--bg2:#f1e9d2;--ink:#24214d;--muted:#5d5a86;--moon:#f2a900;--coral:#e0543f;--line:#dccfa8}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 var(--body)}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
+.logo{font:800 24px var(--display);letter-spacing:-.02em}
+.logo span{color:var(--moon)}
+nav a{color:var(--muted);text-decoration:none;margin-left:22px;font-size:15px}
+nav a:hover{color:var(--ink)}
+:focus-visible{outline:3px solid var(--moon);outline-offset:3px;border-radius:6px}
+
+.hero{padding:56px 0 80px;text-align:left}
+h1{font:800 clamp(44px,9vw,104px)/.95 var(--display);letter-spacing:-.04em;margin:0 0 24px;max-width:11ch}
+.lede{font-size:clamp(18px,2.4vw,22px);color:var(--muted);max-width:46ch;margin:0 0 36px}
+.nap{position:relative;z-index:60;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center;background:var(--bg2);border:2px solid var(--line);border-radius:28px;padding:28px;max-width:640px}
+.lid{position:fixed;left:0;right:0;height:50%;background:#0b0a1f;pointer-events:none;z-index:50;transition:transform 1s linear}
+.lid-top{top:0;transform:translateY(calc(-100% + var(--close,0)*100%))}
+.lid-bot{bottom:0;transform:translateY(calc(100% - var(--close,0)*100%))}
+html.snap .lid{transition:transform .18s cubic-bezier(.2,2,.4,1)}
+.zzz{position:fixed;left:50%;top:50%;z-index:55;pointer-events:none;font:800 56px var(--display);color:var(--moon);opacity:calc((var(--close,0) - .8)*5);transform:translate(-50%,-50%);animation:floaty 3s ease-in-out infinite alternate}
+@keyframes floaty{to{transform:translate(-50%,-70%)}}
+@media (prefers-reduced-motion:reduce){.lid,.zzz{display:none}}
+.moon{width:112px;height:112px;border-radius:50%;border:0;cursor:pointer;background:var(--moon);color:#1c1b3d;font:800 15px var(--display);box-shadow:inset -18px -10px 0 rgba(0,0,0,.12);transition:transform .15s}
+.moon:active{transform:scale(.94)}
+.moon{padding:46px 8px 0;font-size:13px;line-height:1.15}
+.moonwrap{position:relative;width:112px;height:112px}
+.face{position:absolute;left:0;right:0;top:24px;display:flex;justify-content:center;gap:20px;pointer-events:none}
+.face i{display:block;position:relative;width:16px;height:16px;border-radius:50%;background:#1c1b3d;overflow:hidden}
+.face i::after{content:'';position:absolute;left:-20%;top:0;width:140%;height:var(--droop,0%);background:var(--moon);transform-origin:50% 0;transition:height 1s linear}
+.moon[aria-pressed="true"]~.face{animation:breathe 4s ease-in-out infinite}
+.moon[aria-pressed="true"]~.face i::after{background:var(--coral)}
+.face.angry i::after{height:62%;transition:none}
+.face.angry i:first-child::after{transform:rotate(22deg)}
+.face.angry i:last-child::after{transform:rotate(-22deg)}
+.pillow{position:fixed;top:0;width:68px;height:46px;border-radius:44%/58% 58% 42% 42%;pointer-events:none;z-index:40;box-shadow:inset -6px -6px 0 rgba(0,0,0,.12)}
+.moon[aria-pressed="true"]{background:var(--coral);animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.08)}}
+.clock{font:800 clamp(34px,6vw,52px)/1 var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.status{color:var(--muted);font-size:15px;margin-top:8px;min-height:1.6em}
+
+.ruined{font:800 15px var(--display);margin-top:10px}
+.reset{margin-top:12px;padding:8px 16px;border-radius:12px;border:2px solid var(--line);background:transparent;color:var(--ink);font:500 14px var(--body);cursor:pointer}
+.reset:hover{border-color:var(--moon)}
+.alert{margin-top:10px;padding:10px 14px;border-radius:14px;background:var(--coral);color:#1c1b3d;font-weight:500;font-size:15px;display:none}
+.alert.show{display:block;animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+section{padding:64px 0;border-top:2px solid var(--line)}
+h2{font:800 clamp(30px,5vw,48px)/1.05 var(--display);letter-spacing:-.03em;margin:0 0 36px;max-width:16ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:36px}
+h3{font:800 22px var(--display);margin:0 0 8px;letter-spacing:-.01em}
+.grid p{margin:0;color:var(--muted)}
+.press{display:flex;flex-wrap:wrap;gap:12px 32px;color:var(--muted);font:500 18px var(--display);padding:28px 0;border-top:2px solid var(--line)}
+.press s{opacity:.8}
+blockquote{margin:0;font:800 clamp(24px,4vw,40px)/1.15 var(--display);letter-spacing:-.02em;max-width:24ch}
+cite{display:block;margin-top:16px;font:400 16px var(--body);color:var(--muted)}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.plan{border:2px solid var(--line);border-radius:24px;padding:28px}
+.plan.hot{background:var(--moon);color:#1c1b3d;border-color:var(--moon)}
+.plan.hot p,.plan.hot li{color:#1c1b3d}
+.price{font:800 44px var(--display);letter-spacing:-.03em;margin:8px 0}
+.price small{font:400 16px var(--body)}
+.plan ul{padding-left:20px;margin:16px 0 0;color:var(--muted)}
+.join{display:flex;flex-wrap:wrap;gap:12px;max-width:560px}
+.join input{flex:1 1 240px;padding:16px 18px;border-radius:16px;border:2px solid var(--line);background:var(--bg2);color:var(--ink);font:inherit}
+.join button{padding:16px 26px;border-radius:16px;border:0;background:var(--moon);color:#1c1b3d;font:800 17px var(--display);cursor:pointer}
+#joined{margin-top:16px;min-height:1.6em;color:var(--coral);font-weight:500}
+footer{padding:32px 0 56px;border-top:2px solid var(--line);color:var(--muted);font-size:14px}
+@media (max-width:520px){.nap{grid-template-columns:1fr;justify-items:start}nav a{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="logo">Nap<span>OS</span></div>
+    <div><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#join">Waitlist</a></div>
+  </nav>
+
+  <header class="hero">
+    <h1>Do nothing. Enjoy it.</h1>
+    <p class="lede">NapOS is an app for doing nothing. Close your eyes, tap the moon, and we’ll handle the rest. We won’t, actually, but you’ll feel great.</p>
+    <div class="nap">
+      <div class="moonwrap"><button class="moon" id="moon" aria-pressed="false">Start doing nothing</button><div class="face" id="face" aria-hidden="true"><i></i><i></i></div></div>
+      <div>
+        <div class="clock" id="clock" aria-live="off">00:00</div>
+        <div class="status" id="status" aria-live="polite">You’ve done nothing so far. Tap the moon.</div>
+        <div class="ruined" id="ruined">Naps ruined: 0</div>
+        <div class="alert" id="alert" role="alert"></div>
+        <button class="reset" id="reset">Start over</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="press" aria-label="Press mentions">
+    <span>As featured in</span><s>TechCrunch</s><s>Forbes 30 Under Nap</s><s>My Mum’s WhatsApp Group</s>
+  </div>
+
+  <section id="features">
+    <h2>Getting things done? Not here.</h2>
+    <div class="grid">
+      <div><h3>Yawn Sync</h3><p>We save your yawns online and keep them private. Get them back any afternoon.</p></div>
+      <div><h3>Smart Snooze</h3><p>Our AI figures out when you’ll ignore your alarm, then politely gives up before you do.</p></div>
+      <div><h3>Deep Idle Mode</h3><p>No notifications, no tabs, no goals. The battery never dies. Your ambition takes a break.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <blockquote>“I used NapOS for six hours and did absolutely nothing. 10 out of 10.”</blockquote>
+    <cite>Chinedu A., professional napper</cite>
+  </section>
+
+  <section id="pricing">
+    <h2>Prices that won’t keep you up.</h2>
+    <div class="plans">
+      <div class="plan"><h3>Power Nap</h3><div class="price">₦0<small> / forever</small></div><p>For people who just want a quick rest.</p><ul><li>20 minutes of nothing</li><li>Snores from other users</li></ul></div>
+      <div class="plan hot"><h3>Hibernate Pro</h3><div class="price">₦5,000<small> / season</small></div><p>For people who take rest seriously.</p><ul><li>Unlimited nothing</li><li>Yawns come first</li><li>Stricter Do Not Disturb</li></ul></div>
+    </div>
+  </section>
+
+  <section id="join">
+    <h2>Join the waitlist. Take your time.</h2>
+    <div class="join">
+      <input id="email" type="email" placeholder="you@sleepy.com" aria-label="Email address">
+      <button id="joinBtn">Sign me up</button>
+    </div>
+    <div id="joined" role="status"></div>
+  </section>
+
+  <footer>© 2026 NapOS Inc. Not a real company. Please don’t invest. Sleep well.</footer>
+</div>
+
+<div class="lid lid-top" aria-hidden="true"></div>
+<div class="lid lid-bot" aria-hidden="true"></div>
+<div class="zzz" aria-hidden="true">Zzz</div>
+<script>
+(function(){
+  var moon=document.getElementById('moon'),clock=document.getElementById('clock'),status=document.getElementById('status');
+  var t=0,timer=null,startedAt=0,ruined=0,moved=0,lastRuin=0;
+  var shame=['You moved! Your nap is ruined.','Was that a finger? Nap ruined.','You switched tabs. Nap over.','Again? The nap committee is disappointed.'];
+  var ruinedEl=document.getElementById('ruined'),alertEl=document.getElementById('alert');
+  function lids(v,snap){var r=document.documentElement;r.classList.toggle('snap',!!snap);r.style.setProperty('--close',v);faceEl.style.setProperty('--droop',Math.round(v*65)+'%')}
+  function rain(){
+    var cols=['#ffd66b','#ff8a78','#b9a8ff','#8fd6c4','#f3efff'];
+    var calm=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    for(var i=0;i<28;i++){
+      var p=document.createElement('div');p.className='pillow';
+      p.style.left=(Math.random()*94)+'%';p.style.background=cols[i%cols.length];
+      document.body.appendChild(p);
+      var y=window.innerHeight-56-Math.random()*70,r=(Math.random()*60-30)+'deg';
+      if(calm){p.style.transform='translateY('+y+'px) rotate('+r+')';continue}
+      p.animate([{transform:'translateY(-100px) rotate(0deg)'},{transform:'translateY('+y+'px) rotate('+r+')'}],{duration:1100+Math.random()*900,delay:i*70,easing:'cubic-bezier(.3,1.5,.5,1)',fill:'both'});
+    }
+    var all=document.querySelectorAll('.pillow');
+    for(var j=0;j<all.length-90;j++)all[j].remove();
+  }
+  var faceEl=document.getElementById('face');
+  function ruin(){
+    var now=Date.now();
+    if(moon.getAttribute('aria-pressed')!=='true'||now-startedAt<2500||now-lastRuin<1500)return;
+    lastRuin=now;ruined++;t=0;moved=0;clock.textContent='00:00';lids(0,true);faceEl.classList.add('angry');setTimeout(function(){faceEl.classList.remove('angry')},1800);
+    ruinedEl.textContent='Naps ruined: '+ruined;
+    alertEl.textContent=ruined>=5?'Bro. Just rest. 🌙':shame[(ruined-1)%shame.length];
+    alertEl.classList.remove('show');void alertEl.offsetWidth;alertEl.classList.add('show');
+  }
+  document.getElementById('reset').addEventListener('click',function(){
+    clearInterval(timer);t=0;ruined=0;moved=0;
+    moon.setAttribute('aria-pressed','false');moon.textContent='Start doing nothing';
+    clock.textContent='00:00';ruinedEl.textContent='Naps ruined: 0';lids(0,true);
+    alertEl.classList.remove('show');status.textContent='You’ve done nothing so far. Tap the moon.';
+  });
+  document.addEventListener('mousemove',function(e){if(e.target===moon)return;moved+=Math.abs(e.movementX||0)+Math.abs(e.movementY||0);if(moved>80)ruin()});
+  document.addEventListener('keydown',function(){ruin()});
+  document.addEventListener('touchmove',function(){ruin()},{passive:true});
+  document.addEventListener('visibilitychange',function(){if(document.hidden)ruin()});
+  var lines=['Saving your yawns…','Turning off the world…','Getting your slouch just right…','Tidying up your thoughts…','Doing nothing, big time…','Your inbox can wait.','Fluffing the pillow…','Rest is going well.'];
+  function fmt(n){var m=Math.floor(n/60),s=n%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s}
+  moon.addEventListener('click',function(){
+    var on=moon.getAttribute('aria-pressed')==='true';
+    if(on){
+      clearInterval(timer);lids(0,false);moon.setAttribute('aria-pressed','false');moon.textContent='Start doing nothing';
+      status.textContent=t>0?'Saved: '+fmt(t)+' of pure nothing. Well done.':'You’ve done nothing so far. Tap the moon.';
+    }else{
+      moon.setAttribute('aria-pressed','true');moon.textContent='Stop (if you must)';startedAt=Date.now();moved=0;alertEl.classList.remove('show');
+      status.textContent=lines[0];
+      timer=setInterval(function(){
+        t++;clock.textContent=fmt(t);lids(Math.min(t/60,1),false);
+        if(t%4===0)status.textContent=lines[(t/4)%lines.length];
+      },1000);
+    }
+  });
+  document.getElementById('joinBtn').addEventListener('click',function(){
+    var v=document.getElementById('email').value.trim(),out=document.getElementById('joined');
+    if(!/^\S+@\S+\.\S+$/.test(v)){out.textContent='Please type a real email, like you@sleepy.com.';return}
+    var n=40000+Math.floor(Math.random()*9000);rain();
+    out.textContent='You’re number '+n.toLocaleString('en-US')+' in line. Wait time: about one nap.';
+  });
+})();
+</script>
+</body>
+</html>
